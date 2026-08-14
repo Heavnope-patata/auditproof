@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CompiledPolicy",
+  "type": "object",
+  "required": [
+    "policy_id",
+    "max_trade_pct_of_portfolio_bps",
+    "trading_hours",
+    "regulatory_basis",
+    "raw_policy_text"
+  ],
+  "properties": {
+    "policy_id": {
+      "type": "string"
+    },
+    "max_trade_pct_of_portfolio_bps": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10000
+    },
+    "trading_hours": {
+      "type": "object",
+      "required": ["market_open_utc_seconds", "market_close_utc_seconds"],
+      "properties": {
+        "market_open_utc_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86400
+        },
+        "market_close_utc_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86400
+        }
+      }
+    },
+    "regulatory_basis": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "raw_policy_text": {
+      "type": "string"
+    },
+    "ambiguity_notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

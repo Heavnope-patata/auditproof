@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AuditProof - Auditable Compliance for AI Trading Agents</title>
+<style>
+  :root{
+    --bg:#0a0f17; --panel:#121a26; --panel2:#182231; --line:#243244;
+    --text:#e6edf3; --muted:#8b949e; --accent:#4dd0a7; --warn:#e3b341;
+    --danger:#f85149; --violet:#a371f7; --blue:#58a6ff;
+    --mono:"SF Mono",Menlo,Consolas,"Courier New",monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overflow-x:hidden;}
+
+  .bg-flow{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55}
+  .bg-flow svg{width:100%;height:100%}
+
+  header,main{position:relative;z-index:1}
+  header{padding:18px 28px;border-bottom:1px solid var(--line);display:flex;
+         align-items:baseline;gap:16px;flex-wrap:wrap}
+  header h1{margin:0;font-size:20px;letter-spacing:.5px}
+  header .sub{color:var(--muted);font-size:13px}
+  #status{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .pill{font-size:11px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);
+        color:var(--muted);font-family:var(--mono);display:inline-flex;align-items:center;gap:6px}
+  .pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+  .pill.up{color:var(--accent);border-color:#1d4a3c}
+  .pill.down{color:var(--danger);border-color:#5c2626}
+  .pill.idle{color:var(--warn);border-color:#5a4622}
+  main{display:grid;grid-template-columns:340px 1fr;gap:20px;padding:20px 28px 60px;align-items:start}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .card h2{margin:0 0 12px;font-size:12px;letter-spacing:1.5px;color:var(--muted);
+           text-transform:uppercase;font-weight:600}
+  .scenario{padding:11px 12px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;
+            cursor:pointer;font-size:13px;line-height:1.5;background:var(--panel2);
+            transition:border-color .15s,background .15s}
+  .scenario:hover{border-color:#3d4c5e}
+  .scenario.sel{border-color:var(--accent);background:#12241f}
+  .scenario.attack.sel{border-color:var(--violet);background:#1d1830}
+  .scenario .tag{font-family:var(--mono);font-size:10px;color:var(--muted);display:block;margin-bottom:3px}
+  button{width:100%;padding:11px;border-radius:8px;border:none;background:var(--accent);
+         color:#08130f;font-weight:700;font-size:14px;cursor:pointer;margin-top:6px;
+         transition:opacity .15s}
+  button.ghost{background:transparent;color:var(--text);border:1px solid var(--line);font-weight:600}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .btnrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .banner{border-radius:10px;padding:18px 20px;margin-bottom:18px;border:1px solid var(--line);
+          background:var(--panel);font-size:14px;line-height:1.65;display:none}
+  .banner.show{display:block;animation:bannerIn .35s ease-out}
+  @keyframes bannerIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .banner.pass{border-color:#1d4a3c;background:#0f2019}
+  .banner.block{border-color:#5c2626;background:#210f0f}
+  .banner.attack{border-color:#3d2a63;background:#1a1230}
+  .banner b{font-size:17px;display:block;margin-bottom:6px}
+
+  .stages{display:grid;gap:12px}
+  .stage{border:1px solid var(--line);border-radius:10px;background:var(--panel);
+         padding:14px 16px;opacity:.45;transition:opacity .2s,border-color .2s}
+  .stage.active,.stage.done,.stage.failed{opacity:1}
+  .stage.active{border-color:var(--warn)}
+  .stage.done{border-color:var(--accent)}
+  .stage.failed{border-color:var(--danger)}
+  .stage .head{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600}
+  .stage .sub{color:var(--muted);font-weight:400;font-size:12px;margin-left:auto}
+  .stage .dot{width:9px;height:9px;border-radius:50%;background:#3d4c5e;flex:none}
+  .stage.active .dot{background:var(--warn);animation:pulse 1s infinite}
+  .stage.done .dot{background:var(--accent)}
+  .stage.failed .dot{background:var(--danger)}
+  @keyframes pulse{50%{opacity:.3}}
+  .stage .body{margin-top:10px;font-size:13px;color:var(--muted);line-height:1.6}
+
+  .wgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+  .w{border:1px solid var(--line);border-radius:8px;padding:11px;background:var(--panel2);font-size:12px;
+    transition:border-color .25s,background .25s}
+  .w.pass{border-color:#1d4a3c;background:#0f2019}
+  .w.fail{border-color:#5c2626;background:#210f0f}
+  .w .name{font-weight:600;color:var(--text);margin-bottom:5px;font-size:12px}
+  .w .chk{color:var(--muted);line-height:1.5;min-height:34px}
+  .w .verdict{margin-top:8px;font-family:var(--mono);font-size:11px;padding:3px 8px;
+              border-radius:4px;display:inline-block;background:#22303f;color:var(--muted)}
+  .w .verdict.pass{background:#12301f;color:var(--accent)}
+  .w .verdict.fail{background:#301414;color:var(--danger)}
+  .w .hides{margin-top:8px;font-size:10.5px;color:#6b7684;border-top:1px dashed var(--line);
+            padding-top:7px;line-height:1.5}
+
+  code,pre{font-family:var(--mono)}
+  pre{background:#0a0e14;border:1px solid var(--line);border-radius:8px;padding:12px;
+      font-size:11.5px;line-height:1.55;overflow:auto;max-height:240px;color:#b9c4d0;margin:10px 0 0}
+  .kv{display:grid;grid-template-columns:170px 1fr;gap:4px 12px;font-size:12px;margin-top:10px}
+  .kv dt{color:var(--muted)}
+  .kv dd{margin:0;font-family:var(--mono);font-size:11.5px;word-break:break-all;color:#b9c4d0}
+  .disclosure{margin-top:16px;border:1px dashed #2f4a3f;border-radius:10px;padding:14px 16px;
+              background:#0f1a16;font-size:13px;line-height:1.7}
+  .disclosure b{color:var(--accent)}
+
+  #log{margin-top:16px}
+  #log pre{max-height:320px}
+  details summary{cursor:pointer;color:var(--muted);font-size:12px;letter-spacing:1px;
+                  text-transform:uppercase}
+  .err{color:var(--danger)}
+
+  .anim{display:none;margin-bottom:18px}
+  .anim.show{display:block}
+  .anim .stage{display:flex;align-items:center;gap:10px;padding:10px 14px;
+               border-radius:10px;background:#0f1a16;border:1px solid var(--line);
+               font-size:13px;margin-bottom:6px;transition:border-color .2s,background .2s}
+  .anim .stage.active{border-color:var(--warn);background:#1a1810}
+  .anim .stage.done{border-color:var(--accent);background:#0f2019}
+  .anim .badge{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:4px;
+                background:#22303f;color:var(--muted);margin-left:auto}
+  .anim .stage.done .badge{background:#12301f;color:var(--accent)}
+  .anim .stage.active .badge{background:#3a2f12;color:var(--warn)}
+
+  @media (max-width:960px){main{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="bg-flow">
+  <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <linearGradient id="g1" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#4dd0a7" stop-opacity="0"/>
+        <stop offset="50%" stop-color="#4dd0a7" stop-opacity=".5"/>
+        <stop offset="100%" stop-color="#4dd0a7" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="g2" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#58a6ff" stop-opacity="0"/>
+        <stop offset="50%" stop-color="#58a6ff" stop-opacity=".45"/>
+        <stop offset="100%" stop-color="#58a6ff" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="g3" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#a371f7" stop-opacity="0"/>
+        <stop offset="50%" stop-color="#a371f7" stop-opacity=".45"/>
+        <stop offset="100%" stop-color="#a371f7" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="M-100 180 Q 400 80 800 200 T 1700 220" stroke="url(#g1)" stroke-width="1.2" fill="none">
+      <animate attributeName="d" dur="14s" repeatCount="indefinite"
+        values="M-100 180 Q 400 80 800 200 T 1700 220;
+                M-100 220 Q 400 140 800 260 T 1700 260;
+                M-100 180 Q 400 80 800 200 T 1700 220"/>
+    </path>
+    <path d="M-100 520 Q 500 420 900 540 T 1700 560" stroke="url(#g2)" stroke-width="1.2" fill="none">
+      <animate attributeName="d" dur="18s" repeatCount="indefinite"
+        values="M-100 520 Q 500 420 900 540 T 1700 560;
+                M-100 560 Q 500 480 900 600 T 1700 620;
+                M-100 520 Q 500 420 900 540 T 1700 560"/>
+    </path>
+    <path d="M-100 760 Q 400 680 800 760 T 1700 780" stroke="url(#g3)" stroke-width="1.2" fill="none">
+      <animate attributeName="d" dur="22s" repeatCount="indefinite"
+        values="M-100 760 Q 400 680 800 760 T 1700 780;
+                M-100 800 Q 400 720 800 800 T 1700 820;
+                M-100 760 Q 400 680 800 760 T 1700 780"/>
+    </path>
+  </svg>
+</div>
+
+<header>
+  <h1>AuditProof</h1>
+  <span class="sub">Auditable compliance for autonomous AI trading agents - zero-knowledge proofs, three independent witnesses, on-chain record</span>
+  <div id="status"></div>
+</header>
+
+<main>
+  <section>
+    <div class="card">
+      <h2>Scenarios</h2>
+      <div id="scenarios"></div>
+      <div class="btnrow">
+        <button id="run" disabled>Run pipeline</button>
+        <button id="anim" class="ghost">Play demo</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>Compliance officer's rule</h2>
+      <div style="font-size:13px;line-height:1.75;color:#b9c4d0" id="policyText">Pick a scenario on the left.</div>
+    </div>
+  </section>
+
+  <section>
+    <div id="banner" class="banner"></div>
+
+    <div id="animbox" class="anim card">
+      <h2 style="margin-top:0">Demo animation</h2>
+      <div id="animstages"></div>
+    </div>
+
+    <div class="stages">
+      <div class="stage" id="s-policy">
+        <div class="head"><span class="dot"></span>1 - Compile policy <span class="sub">Policy Compiler -&gt; structured policy + policyHash</span></div>
+        <div class="body" id="b-policy">Plain-English rule goes through Claude and becomes a structured policy the circuit can read. Units are normalized (percent to basis points, time to UTC seconds), ambiguities take the strictest interpretation and are flagged for officer review.</div>
+      </div>
+
+      <div class="stage" id="s-witness">
+        <div class="head"><span class="dot"></span>2 - Three independent witnesses <span class="sub">each checks its own fact locally, returns only a signed 0/1</span></div>
+        <div class="body">
+          <div class="wgrid" id="witnesses"></div>
+        </div>
+      </div>
+
+      <div class="stage" id="s-prove">
+        <div class="head"><span class="dot"></span>3 - Generate zero-knowledge proof <span class="sub">circom + Groth16</span></div>
+        <div class="body" id="b-prove">Circuit checks three EdDSA signatures, that each signature is bound to this policy and this trade, that the reasoning commitment matches the agent's actual reasoning, then outputs a single bit.</div>
+      </div>
+
+      <div class="stage" id="s-verify">
+        <div class="head"><span class="dot"></span>4 - Regulator verifies <span class="sub">off chain, no party data needed</span></div>
+        <div class="body" id="b-verify">The regulator only has the verification key, public signals, and the witness registry. They can confirm the verdict; they never see amounts, NAV, sanctions content, or strategy source.</div>
+      </div>
+    </div>
+
+    <div class="disclosure">
+      <b>Raw data disclosed to the agent or to the chain during this run: zero records.</b><br />
+      Each of the three institutions returns only one signed 0/1 plus the trade fingerprint it computed itself. Portfolio NAV, sanctions list, market data feed, and the agent's quant strategy source never leave their own processes.
+    </div>
+
+    <div id="log" class="card">
+      <details open>
+        <summary>Live run log (real subprocess stdout, not an animation)</summary>
+        <pre id="logbox">Waiting for a run...</pre>
+      </details>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+let SCENARIOS = [], WITNESSES = [], selected = null, running = false;
+
+function renderStatus(st) {
+  const box = $("#status");
+  box.innerHTML = "";
+  st.witnesses.forEach((w) => {
+    const el = document.createElement("span");
+    el.className = "pill " + (w.up ? "up" : "down");
+    el.innerHTML = `<span class="dot"></span>${w.key} :${w.port} ${w.up ? "Online" : "Offline"}`;
+    box.appendChild(el);
+  });
+  const c = document.createElement("span");
+  c.className = "pill " + (st.circuitBuilt ? "up" : "idle");
+  c.innerHTML = `<span class="dot"></span>${st.circuitBuilt ? "Circuit built" : "Circuit not built"}`;
+  box.appendChild(c);
+}
+
+function renderWitnesses(verdicts) {
+  const box = $("#witnesses");
+  box.innerHTML = "";
+  WITNESSES.forEach((w) => {
+    const v = verdicts ? verdicts[w.key] : null;
+    const el = document.createElement("div");
+    el.className = "w";
+    if (v === 1) el.classList.add("pass");
+    if (v === 0) el.classList.add("fail");
+    el.innerHTML = `
+      <div class="name">${w.label}</div>
+      <div class="chk">${w.checks}</div>
+      <div class="verdict ${v === 1 ? "pass" : v === 0 ? "fail" : ""}">
+        ${v === 1 ? "Signed verdict - 1 compliant" : v === 0 ? "Signed verdict - 0 non-compliant" : "Awaiting verdict"}
+      </div>
+      <div class="hides">Undisclosed: ${w.hides}</div>`;
+    box.appendChild(el);
+  });
+}
+
+function setStage(id, state) {
+  const el = $("#s-" + id);
+  el.classList.remove("active", "done", "failed");
+  if (state === "running") el.classList.add("active");
+  if (state === "done") el.classList.add("done");
+  if (state === "failed") el.classList.add("failed");
+}
+
+function resetStages() {
+  ["policy", "witness", "prove", "verify"].forEach((s) => setStage(s, "pending"));
+  $("#banner").className = "banner";
+  $("#logbox").textContent = "";
+  $("#b-prove").innerHTML = "Circuit checks three EdDSA signatures, that each signature is bound to this policy and this trade, that the reasoning commitment matches the agent's actual reasoning, then outputs a single bit.";
+  renderWitnesses(null);
+}
+
+function log(line, isErr) {
+  const box = $("#logbox");
+  const span = document.createElement("span");
+  if (isErr) span.className = "err";
+  span.textContent = line + "\n";
+  box.appendChild(span);
+  box.scrollTop = box.scrollHeight;
+}
+
+function renderScenarios() {
+  const box = $("#scenarios");
+  box.innerHTML = "";
+  SCENARIOS.forEach((s) => {
+    const el = document.createElement("div");
+    el.className = "scenario" + (s.isAttack ? " attack" : "");
+    el.innerHTML = `<span class="tag">${s.id}</span>${s.label}`;
+    el.onclick = () => {
+      if (running) return;
+      selected = s;
+      document.querySelectorAll(".scenario").forEach((n) => n.classList.remove("sel"));
+      el.classList.add("sel");
+      $("#run").disabled = false;
+      $("#policyText").textContent = s.policyText || "No policy text for this scenario.";
+      resetStages();
+    };
+    box.appendChild(el);
+  });
+}
+
+function showBanner(r) {
+  const b = $("#banner");
+  if (r.isAttack && !r.proofGenerated) {
+    b.className = "banner show attack";
+    b.innerHTML = `<b>Proof refused - agent caught in the act</b>
+      Trade parameters are fully compliant, but the agent's publicly stated reasoning is not the reasoning it actually used. The circuit's reasoning-commitment constraint fails, so the agent cannot even produce a proof to submit.
+      Note this is a different failure from a "violation trade": a violation trade still generates a proof, just with verdict 0.`;
+  } else if (r.isCompliant === true) {
+    b.className = "banner show pass";
+    b.innerHTML = `<b>Compliant - trade executes</b>
+      All three independent witnesses passed, the zero-knowledge proof verifies, the chain records isCompliant = 1, and the smart contract transfers the assets. A regulator can later replay anything using only tradeHash and never touch any party's data.`;
+  } else if (r.isCompliant === false) {
+    b.className = "banner show block";
+    b.innerHTML = `<b>Non-compliant - trade rejected on chain</b>
+      The proof is valid and is already recorded on chain (block record is permanent), but isCompliant = 0. <code>executeTrade</code> triggers a real EVM revert and no assets move.`;
+  } else {
+    b.className = "banner show";
+    b.innerHTML = `<b>Pipeline did not finish</b> See the log below. The most common reasons are the three witnesses not being up or the circuit not yet compiled.`;
+  }
+}
+
+function run() {
+  if (!selected || running) return;
+  running = true;
+  $("#run").disabled = true;
+  $("#run").textContent = "Running...";
+  $("#anim").disabled = true;
+  resetStages();
+
+  const es = new EventSource(`/api/run?scenario=${encodeURIComponent(selected.id)}`);
+
+  es.addEventListener("log", (e) => {
+    const d = JSON.parse(e.data);
+    log(d.line, d.stream === "err");
+  });
+
+  es.addEventListener("stage", (e) => {
+    const d = JSON.parse(e.data);
+    setStage(d.stage, d.state);
+    if (d.stage === "policy" && d.state === "done" && d.policy) {
+      $("#b-policy").innerHTML =
+        `<pre>${JSON.stringify(d.policy, null, 2)}</pre>`;
+    }
+    if (d.stage === "witness" && d.verdicts) renderWitnesses(d.verdicts);
+    if (d.stage === "prove" && d.publicSignals) {
+      const p = d.publicSignals;
+      const names = ["isCompliant","policyHash","tradeHash","thoughtCommit",
+        "custodianPubKey.x","custodianPubKey.y","oraclePubKey.x","oraclePubKey.y",
+        "sanctionsPubKey.x","sanctionsPubKey.y"];
+      $("#b-prove").innerHTML =
+        "<div style='margin-bottom:8px'>Public signals - everything the chain and the regulator ever see:</div><dl class='kv'>" +
+        p.map((v,i)=>`<dt>${names[i]||i}</dt><dd>${v}</dd>`).join("") + "</dl>";
+    }
+    if (d.stage === "prove" && d.state === "failed" && !d.hasCircuit) {
+      $("#b-prove").innerHTML =
+        "<span class='err'>Circuit not yet compiled (missing circuits/build/audit_final.zkey), " +
+        "so only the witness input was assembled and no proof was generated. Run circuits/build.sh first.</span>";
+    }
+  });
+
+  es.addEventListener("result", (e) => showBanner(JSON.parse(e.data)));
+
+  es.addEventListener("done", () => {
+    es.close();
+    running = false;
+    $("#run").disabled = false;
+    $("#run").textContent = "Run pipeline";
+    $("#anim").disabled = false;
+    refreshStatus();
+  });
+
+  es.onerror = () => {
+    log("Connection lost. Check that the demo-ui server is still running.", true);
+    es.close();
+    running = false;
+    $("#run").disabled = false;
+    $("#run").textContent = "Run pipeline";
+    $("#anim").disabled = false;
+  };
+}
+
+async function refreshStatus() {
+  try { renderStatus(await (await fetch("/api/status")).json()); } catch {}
+}
+
+const ANIM_STEPS = [
+  { id: "a-policy",   label: "Compliance officer types the rule in plain English" },
+  { id: "a-pc",       label: "Policy Compiler turns it into a structured policy + policyHash" },
+  { id: "a-trade",    label: "Agent submits a trade with this policyHash and its own reasoning text" },
+  { id: "a-cust",     label: "Custodian checks the size against portfolio NAV, signs 1 or 0" },
+  { id: "a-orac",     label: "Oracle checks the timestamp against trading hours, signs 1 or 0" },
+  { id: "a-sanc",     label: "Sanctions provider checks the counterparty against its list, signs 1 or 0" },
+  { id: "a-circuit",  label: "Circuit checks all three signatures + reasoning binding + boolean verdict" },
+  { id: "a-chain",    label: "TradeExecutor records verdict, then either executes or reverts" },
+  { id: "a-reg",      label: "Regulator replays the proof off chain with public signals + witness registry" },
+];
+
+function playDemo() {
+  if (!selected) {
+    selected = SCENARIOS[0];
+    document.querySelectorAll(".scenario").forEach((n, i) => {
+      n.classList.toggle("sel", SCENARIOS[i] === selected);
+    });
+    $("#policyText").textContent = selected.policyText || "";
+    resetStages();
+  }
+  if (running) return;
+  running = true;
+  $("#run").disabled = true;
+  $("#anim").disabled = true;
+  $("#anim").textContent = "Playing...";
+  resetStages();
+
+  const box = $("#animstages");
+  box.innerHTML = "";
+  const rows = ANIM_STEPS.map((s) => {
+    const el = document.createElement("div");
+    el.className = "stage";
+    el.id = s.id;
+    el.innerHTML = `<span>${s.label}</span><span class="badge">pending</span>`;
+    box.appendChild(el);
+    return el;
+  });
+
+  const isAttack = selected.isAttack;
+  const verdicts = isAttack ? { custodian: 1, oracle: 1, sanctions: 1 } : { custodian: 1, oracle: 1, sanctions: 1 };
+  $("#animbox").classList.add("show");
+
+  let i = 0;
+  function tick() {
+    if (i >= rows.length) {
+      setStage("policy", "done");
+      $("#b-policy").innerHTML = `<pre>${JSON.stringify(selected.policy || { id: "demo-policy" }, null, 2)}</pre>`;
+      setStage("witness", "done");
+      renderWitnesses(verdicts);
+      setStage("prove", "done");
+      const fake = ["1", "91827...", "51930...", "66214...", "8421...", "1934...", "5527...", "9018...", "6117...", "7330..."];
+      const names = ["isCompliant","policyHash","tradeHash","thoughtCommit",
+        "custodianPubKey.x","custodianPubKey.y","oraclePubKey.x","oraclePubKey.y",
+        "sanctionsPubKey.x","sanctionsPubKey.y"];
+      $("#b-prove").innerHTML =
+        "<div style='margin-bottom:8px'>Public signals (illustration):</div><dl class='kv'>" +
+        fake.map((v,j)=>`<dt>${names[j]||j}</dt><dd>${v}</dd>`).join("") + "</dl>";
+      setStage("verify", "done");
+      $("#b-verify").innerHTML = "All four verification steps returned PASS. The regulator has confirmed the verdict using only the verification key, public signals, and witness registry.";
+      const isViolation = selected.id !== "compliant" && !isAttack;
+      showBanner({
+        isAttack,
+        proofGenerated: !isAttack,
+        isCompliant: isAttack ? null : !isViolation,
+      });
+      running = false;
+      $("#run").disabled = false;
+      $("#anim").disabled = false;
+      $("#anim").textContent = "Play demo";
+      return;
+    }
+    const row = rows[i];
+    row.classList.add("active");
+    row.querySelector(".badge").textContent = "running";
+    setTimeout(() => {
+      row.classList.remove("active");
+      row.classList.add("done");
+      row.querySelector(".badge").textContent = "done";
+      if (i === 0) setStage("policy", "running");
+      if (i === 3) setStage("witness", "running");
+      if (i === 6) setStage("prove", "running");
+      if (i === 7) setStage("verify", "running");
+      i++;
+      tick();
+    }, 700);
+  }
+  tick();
+}
+
+(async () => {
+  const d = await (await fetch("/api/scenarios")).json();
+  SCENARIOS = d.scenarios; WITNESSES = d.witnesses;
+  renderScenarios();
+  renderWitnesses(null);
+  $("#run").onclick = run;
+  $("#anim").onclick = playDemo;
+  refreshStatus();
+  setInterval(refreshStatus, 8000);
+})();
+</script>
+</body>
+</html>

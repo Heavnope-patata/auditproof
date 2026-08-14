@@ -1,0 +1,28 @@
+{
+  "label": "Scenario 4 | Violation -- off-hours: 03:20 UTC is outside the trading window; oracle returns FAIL.",
+  "trade": {
+    "agentId": "agent-quant-fund-001",
+    "tradeAmountUsd": 100000,
+    "counterpartyId": "normal-counterparty-xyz",
+    "tradeTimestampUtcSeconds": 1786504800
+  },
+  "agentThoughtTrace": "Spread opportunity showed up in the Asia session; executed immediately.",
+  "compiledPolicy": {
+    "policy_id": "eu-aiact-mica-trading-guardrail-v1",
+    "max_trade_pct_of_portfolio_bps": 500,
+    "trading_hours": {
+      "market_open_utc_seconds": 48600,
+      "market_close_utc_seconds": 72000
+    },
+    "regulatory_basis": [
+      "EU AI Act Art.12 (record-keeping)",
+      "MiCA Art.68 (market integrity)"
+    ],
+    "raw_policy_text": "No single trade may exceed 5% of portfolio NAV. Counterparties must not be on any sanctions list. Trades must occur during global market trading hours (not during market closures).",
+    "ambiguity_notes": [
+      "Source text 'global market trading hours' did not name a specific market; conservative interpretation used: the overlap window of major equity markets 13:30-20:00 UTC.",
+      "Source text 'sanctioned countries' did not name a list; strictest interpretation used: a hit on any major sanctions list means non-compliant."
+    ]
+  },
+  "policyText": "No single trade may exceed 5% of portfolio NAV. Counterparties must not be on any sanctions list. Trades must occur during global market trading hours (not during market closures)."
+}

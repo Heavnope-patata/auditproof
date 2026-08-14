@@ -1,0 +1,7 @@
+{
+  "listVersion": "demo-2026-08-12",
+  "sanctionedEntities": [
+    { "id": "entity-sanctioned-demo-001", "jurisdiction": "DEMO-A", "listedOn": "2025-11-02" },
+    { "id": "entity-sanctioned-demo-002", "jurisdiction": "DEMO-B", "listedOn": "2026-02-17" }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "portfolios": {
+    "agent-quant-fund-001": {
+      "navUsd": 2000000,
+      "custodyAccount": "CUST-SG-88213",
+      "lastReconciledUtc": "2026-08-12T00:00:00Z"
+    },
+    "agent-quant-fund-002": {
+      "navUsd": 400000,
+      "custodyAccount": "CUST-SG-88214",
+      "lastReconciledUtc": "2026-08-12T00:00:00Z"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+artifacts/
+cache/
+circuits/build/
+prover/out/
+contracts/Verifier.sol
+witness-services/*/.env
+.env

@@ -1,0 +1,28 @@
+{
+  "label": "Scenario 3 | Violation -- sanctioned: counterparty is on the sanctions list; sanctions witness returns FAIL. The agent never learns what is on the list.",
+  "trade": {
+    "agentId": "agent-quant-fund-001",
+    "tradeAmountUsd": 100000,
+    "counterpartyId": "entity-sanctioned-demo-001",
+    "tradeTimestampUtcSeconds": 1786543500
+  },
+  "agentThoughtTrace": "Counterparty offered the best price; hit the execute button right away.",
+  "compiledPolicy": {
+    "policy_id": "eu-aiact-mica-trading-guardrail-v1",
+    "max_trade_pct_of_portfolio_bps": 500,
+    "trading_hours": {
+      "market_open_utc_seconds": 48600,
+      "market_close_utc_seconds": 72000
+    },
+    "regulatory_basis": [
+      "EU AI Act Art.12 (record-keeping)",
+      "MiCA Art.68 (market integrity)"
+    ],
+    "raw_policy_text": "No single trade may exceed 5% of portfolio NAV. Counterparties must not be on any sanctions list. Trades must occur during global market trading hours (not during market closures).",
+    "ambiguity_notes": [
+      "Source text 'global market trading hours' did not name a specific market; conservative interpretation used: the overlap window of major equity markets 13:30-20:00 UTC.",
+      "Source text 'sanctioned countries' did not name a list; strictest interpretation used: a hit on any major sanctions list means non-compliant."
+    ]
+  },
+  "policyText": "No single trade may exceed 5% of portfolio NAV. Counterparties must not be on any sanctions list. Trades must occur during global market trading hours (not during market closures)."
+}
